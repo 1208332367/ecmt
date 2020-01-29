@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'course',
 ]
 
 MIDDLEWARE = [
@@ -88,7 +89,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'ecmt',
         'USER':'root',
-        'PASSWORD':'123456',
+        'PASSWORD':'67cOhHqoqtGgnpsO',
         'HOST':'127.0.0.1',
         'PORT':'3306',
     }

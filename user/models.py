@@ -6,6 +6,7 @@ from django.utils import timezone
 
 class UserInfo(models.Model):
     # stu_id = models.CharField(max_length=100)
+
     openid = models.CharField(max_length=100)
     nick_name = models.CharField(max_length=100)
     stu_id = models.CharField(max_length=100,blank=True,null=True)

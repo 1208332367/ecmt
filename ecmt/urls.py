@@ -18,11 +18,15 @@ from django.contrib import admin
 from django.urls import path, include
 from django.views.static import serve
 
-from ecmt import view, settings
+from ecmt import view, settings, testdb
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     url(r'^$', view.hello),
+    url(r'^test$', testdb.test),
+    url(r'^test2$', testdb.test2),
+    url(r'^test3$', testdb.test3),
+    url(r'^test4$', testdb.test4),
     url(r'^service/', include('service.urls')),
     url(r'^static/(?P<path>.*)$',serve, {'document_root': settings.STATIC_ROOT}),
 ]
