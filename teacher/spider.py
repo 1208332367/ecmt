@@ -1,8 +1,13 @@
+import sys
+
 import django
 import requests
 
 # from teacher.models import Teacher, Dept
 import os
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(BASE_DIR)
+
 os.environ['DJANGO_SETTINGS_MODULE']='ecmt.settings'  #配置系统变量
 django.setup()
 
