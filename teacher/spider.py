@@ -1,6 +1,13 @@
+import django
 import requests
 
-from teacher.models import Teacher, Dept
+# from teacher.models import Teacher, Dept
+import os
+os.environ['DJANGO_SETTINGS_MODULE']='ecmt.settings'  #配置系统变量
+django.setup()
+
+from teacher.models import Dept, Teacher
+
 
 
 def get_teachers():
@@ -50,16 +57,19 @@ def get_teachers():
         },
     )
     res = r.json()
-    for t in res['data']:
-        _, dept = Dept.objects.get_or_create(name=t['title'])
-        _, teacher = Teacher.objects.get_or_create( name='',defaults={
-            'name' : t['title'],
-            'index_url' : t['cnUrl'],
-            'avatar_url' : t['headerPic'],
+    print("get all from https://faculty.ecnu.edu.cn/, done")
+    for i,t in enumerate(res['data']):
+        dept, _ = Dept.objects.get_or_create(name=t['department'])
+        teacher, _ = Teacher.objects.get_or_create(columnId=t['columnId'],name=t['title'], defaults={
+            'index_url' : 'https://faculty.ecnu.edu.cn' + t['cnUrl'],
+            'avatar_url' : 'https://faculty.ecnu.edu.cn' + t['headerPic'],
             'dept' : t['department'],
+            'deptId': dept.id,
             'post' : t['post']
         })
-    return res
+        if i%100==0:
+            print('processing',i,'of',len(res['data']))
+    return 0
 
 if __name__=="__main__":
     get_teachers()

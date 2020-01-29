@@ -8,4 +8,5 @@ urlpatterns = [
     url(r'^$', views.hello),
     url(r'^upload/', include('upload.urls')),
     re_path(r'^user/', include('user.urls')),
+    re_path(r'^teacher/', include('teacher.urls')),
 ]
