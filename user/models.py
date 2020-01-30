@@ -13,6 +13,7 @@ class UserInfo(models.Model):
     name = models.CharField(max_length=100,blank=True,null=True)
     avatar_url = models.CharField(max_length=255)
     role = models.IntegerField(default=1)
+    stars = models.ImageField(default=0)
     ctl = models.IntegerField(default=0)
     status = models.IntegerField(default=1)
     ctime = models.DateTimeField(default = timezone.now)
