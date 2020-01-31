@@ -27,6 +27,8 @@ urlpatterns = [
     url(r'^test2$', testdb.test2),
     url(r'^test3$', testdb.test3),
     url(r'^test4$', testdb.test4),
+    url(r'^test5$', testdb.test5),
+    url(r'^Dept_insert$', view.Dept_insert),
     url(r'^service/', include('service.urls')),
     url(r'^static/(?P<path>.*)$',serve, {'document_root': settings.STATIC_ROOT}),
 ]

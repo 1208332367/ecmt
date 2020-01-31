@@ -11,144 +11,188 @@ from django.views.decorators.csrf import csrf_exempt
 
 from user.models import UserInfo
 from course.models import courseinfo,teaching,comment
+from teacher.models import Teacher,Dept
 from django.db import connection
 
 
 @csrf_exempt
-def type_select(request):
+def listCourse(request):
 	request.encoding = 'utf-8'
-	res = {'code':0, 'msg':'success', 'data':[]}
+	res = {'code': -1, 'msg': 'error', 'data': {}}
 	try:
-		typeof_course = request.POST['course_type'].strip()
-		qset = courseinfo.objects.filter(course_type=typeof_course)
-		if len(qset)>0:
-			ALL_DATA = json.loads(serializers.serialize("json", qset))
-			selected_data = []
-			for i in range(0, len(ALL_DATA)):
-				selected_data.append(ALL_DATA[i]['fields']['course_name'])
-			res = {'code': 0, 'msg': '操作成功！', 'data': selected_data}
-		else:
-			res = {'code': -1, 'msg': '无该类别课程数据记录！', 'data': []}
-	except:
-		res = {'code': -2, 'msg': '操作异常！', 'data': []}
-		traceback.print_exc()
-	print(res)
+		params = request.POST.dict()
+		params['status'] = 1
+		res['data']['count'] = courseinfo.objects.filter(**params).count()
+		res['data']['courses'] = []
+		qset = courseinfo.objects.filter(**params)
+		ts = json.loads(serializers.serialize("json", qset))
+		for t in ts:
+			data_row = t['fields']
+			data_row['course_id'] = t['pk']
+			res['data']['courses'].append(data_row)
+		res['code'] = 0
+		res['msg'] = 'success'
+	except Exception as e:
+		res['code'] = -2
+		res['msg'] = e
+		res['data'] = []
 	return HttpResponse(json.dumps(res))
 
 @csrf_exempt
-def course_select(request):
+def course_teaching(request):
 	request.encoding = 'utf-8'
-	res = {'code':0, 'msg':'success', 'data':[]}
+	res = {'code':-1, 'msg':'error', 'data':{}}
+	tag = 0
 	try:
-		typeof_course = request.POST['course_type'].strip()
-		nameof_course = request.POST['course_name'].strip()
-		qset = courseinfo.objects.filter(course_type=typeof_course,course_name=nameof_course)
-		if len(qset)==1:
-			DATA = json.loads(serializers.serialize("json", qset))
-			res['data'].append(DATA[0]['fields'])
-			current_id = DATA[0]['pk']
-			cursor=connection.cursor()
-			sql = 'select nick_name,avatar_url,score,comment,approve_num,oppose_num from user_userinfo join course_comment where user_userinfo.openid=course_comment.openid and res_id={} and cmt_type="课程" order by course_comment.mtime desc limit 1'
+		current_id = str(request.POST['res_id'])
+		res_type = request.POST['res_type']
+		cursor=connection.cursor()
+		if res_type == '课程':
+			res['data']['teachers'] = []
+			sql = 'select teacher_id,name,avg_score from teacher_Teacher join course_teaching where teacher_id=teacher_Teacher.id and course_id={} and teacher_Teacher.status=1 and course_teaching.status=1'
 			sql2 = sql.format(current_id)
 			cursor.execute(sql2)
 			qset=cursor.fetchall()
-			if len(qset)==1:
-				dict_trans = [{'nick_name':qset[0][0],'avatar_url':qset[0][1],'score':qset[0][2],'comment':qset[0][3],'approve_num':qset[0][4],'oppose_num':qset[0][5]}]
-				res['data'].append(dict_trans)
-			else:
-				msg = '无该课程评论记录！'
-			qset = teaching.objects.filter(course_id=current_id)
-			DATA = json.loads(serializers.serialize("json", qset))
-			for i in range(0, len(DATA)):
-				res['data'].append(DATA[i]['fields']['teacher'])
-			res['msg'] = '操作成功！'
+			for i in range(0, len(qset)):
+				data_row = {}
+				data_row['teacher_id'] = qset[i][0]
+				data_row['name'] = qset[i][1]
+				data_row['avg_score'] = float(qset[i][2])
+				res['data']['teachers'].append(data_row)#待修改
+			res['code'] = 0
+			res['msg'] = 'success'
+		elif res_type == '教师':
+			res['data']['courses'] = []
+			sql = 'select course_courseinfo.course_id,course_name,avg_score from course_courseinfo join course_teaching where course_teaching.course_id=course_courseinfo.course_id and teacher_id={} and course_courseinfo.status=1 and course_teaching.status=1'
+			sql2 = sql.format(current_id)
+			cursor.execute(sql2)
+			qset=cursor.fetchall()
+			for i in range(0, len(qset)):
+				data_row = {}
+				data_row['course_id'] = qset[i][0]
+				data_row['name'] = qset[i][1]
+				data_row['avg_score'] = float(qset[i][2])
+				res['data']['courses'].append(data_row)
+			res['code'] = 0
+			res['msg'] = 'success'
 		else:
-			res = {'code': -1, 'msg': '无该课程数据记录！', 'data': []}
-	except:
-		res = {'code': -2, 'msg': '操作异常！', 'data': []}
+			res = {'code': -1, 'msg': 'res_type error！', 'data': []}
+	except Exception as e:
+		res = {'code': -2, 'msg': e, 'data': []}
 		traceback.print_exc()
 	print(res)
 	return HttpResponse(json.dumps(res))
 
 @csrf_exempt
-def more_coursecmt(request):
+def more_comment(request):
 	request.encoding = 'utf-8'
-	res = {'code':0, 'msg':'success', 'data':[]}
+	res = {'code':-1, 'msg':'error', 'data':{}}
+	tag = 0
 	try:
-		typeof_course = request.POST['course_type'].strip()
-		nameof_course = request.POST['course_name'].strip()
-		qset = courseinfo.objects.filter(course_type=typeof_course,course_name=nameof_course)
-		if len(qset)==1:
-			DATA = json.loads(serializers.serialize("json", qset))
-			course_id = DATA[0]['pk']
+		current_id = request.POST['res_id']
+		typeof_cmt = request.POST['res_type']
+		if typeof_cmt == '课程':
+			qset = courseinfo.objects.filter(course_id=current_id,status=1)
+		elif typeof_cmt == '教师':
+			qset = Teacher.objects.filter(id=current_id,status=1)
+		else:
+			tag = -2
+		if len(qset)>0:
 			cursor=connection.cursor()
-			sql = 'select comment_id,nick_name,avatar_url,score,comment,approve_num,oppose_num from user_userinfo join course_comment where user_userinfo.openid=course_comment.openid and res_id={} and cmt_type="课程" order by course_comment.mtime desc'
-			sql2 = sql.format(course_id)
+			sql = 'select comment_id,user_userinfo.openid from user_userinfo join course_comment where user_userinfo.openid=course_comment.openid and res_id={} and cmt_type="{}" and course_comment.status=1 and user_userinfo.status=1 order by course_comment.mtime desc'
+			sql2 = sql.format(current_id,typeof_cmt)
 			cursor.execute(sql2)
 			qset=cursor.fetchall()
 			if len(qset)>0:
-				dict_trans = []
+				res['data']['comment_info'] = []
+				res['data']['comment_user'] = []
 				for i in range(0, len(qset)):
-					dict_trans.append([{'comment_id':qset[i][0],'nick_name':qset[i][1],'avatar_url':qset[i][2],'score':qset[i][3],'comment':qset[i][4],'approve_num':qset[i][5],'oppose_num':qset[i][6]}])
-				res['data'] = dict_trans
-				res['msg'] = '操作成功！'
+					cmt_id = qset[i][0]
+					user_id = qset[i][1]
+					qset2 = comment.objects.filter(comment_id=cmt_id,status=1)
+					DATA = json.loads(serializers.serialize("json", qset2))
+					DATA[0]['fields']['comment_id'] = cmt_id
+					res['data']['comment_info'].append(DATA[0]['fields'])
+					qset2 = UserInfo.objects.filter(openid=user_id,status=1)
+					DATA = json.loads(serializers.serialize("json", qset2))
+					res['data']['comment_user'].append(DATA[0]['fields'])
 			else:
-				msg = '无该课程评论记录！'
+				tag = -1
+			res['code'] = 0
+			if tag == -1:
+				res['msg'] = '无该课程或教师评论记录！'
+			else:
+				res['msg'] = 'success'
 		else:
-			res = {'code': -1, 'msg': '无该课程数据记录！', 'data': []}
-	except:
-		res = {'code': -2, 'msg': '操作异常！', 'data': []}
+			if tag == -2:
+				res = {'code': -1, 'msg': 'cmt_type error', 'data': []}
+			else:
+				res = {'code': -2, 'msg': '无该课程或教师数据记录！', 'data': []}
+	except Exception as e:
+		res = {'code': -3, 'msg': e, 'data': []}
 		traceback.print_exc()
 	print(res)
 	return HttpResponse(json.dumps(res))
 
+
+
 @csrf_exempt
-def submit_coursecmt(request):
+def submit_comment(request):
 	request.encoding = 'utf-8'
-	res = {'code':0, 'msg':'success', 'data':[]}
+	res = {'code':-1, 'msg':'error', 'data':{}}
+	tag = 0
 	try:
-		typeof_course = request.POST['course_type'].strip()
-		nameof_course = request.POST['course_name'].strip()
+		current_id = str(request.POST['res_id'])
+		typeof_cmt = request.POST['res_type']
 		user_id = request.POST['user_id'].strip()
 		submit_score = float(request.POST['score'].strip())
 		submit_comment = request.POST['comment'].strip()
-		qset = courseinfo.objects.filter(course_type=typeof_course,course_name=nameof_course)
+		if typeof_cmt == '课程':
+			qset = courseinfo.objects.filter(course_id=current_id,status=1)
+		elif typeof_cmt == '教师':
+			qset = Teacher.objects.filter(id=current_id,status=1)
+		else:
+			tag = -2
 		if len(qset)==1:
 			DATA = json.loads(serializers.serialize("json", qset))
-			current_id = DATA[0]['pk']
-			if abs(submit_score-DATA[0]['fields']['avg_score'])>2:
+			if abs(submit_score-float(DATA[0]['fields']['avg_score']))>2:
 				res = {'code':-1, 'msg':'您的打分被系统判定为无效，请重新打分！', 'data':[]}
 				return HttpResponse(json.dumps(res))
 			else:
-				insert = comment(res_id=current_id,openid=user_id,score=submit_score,comment=submit_comment)
+				insert = comment(res_id=current_id,cmt_type=typeof_cmt,openid=user_id,score=submit_score,comment=submit_comment)
 				insert.save()
-				comment_num = DATA[0]['fields']['cmt_num'] + 1
-				courseinfo.objects.filter(course_id=current_id).update(cmt_num=comment_num)
 				sum_userstar = 0
 				sum_score = 0.0
 				cursor=connection.cursor()
-				sql = 'select status,score from user_userinfo join course_comment where user_userinfo.openid=course_comment.openid and res_id={} and cmt_type="课程"'
-				sql2 = sql.format(current_id)
+				sql = 'select stars,score from user_userinfo join course_comment where user_userinfo.openid=course_comment.openid and res_id={} and cmt_type="{}"'
+				sql2 = sql.format(current_id,typeof_cmt)
 				cursor.execute(sql2)
 				qset=cursor.fetchall()
 				for i in range(0, len(qset)):
 					sum_score = sum_score + qset[i][0]*qset[i][1]
 					sum_userstar = sum_userstar + qset[i][0]
-				new_avgscore = round(sum_score/sum_userstar, 1)
-				courseinfo.objects.filter(course_id=current_id).update(avg_score=new_avgscore)
-				res = {'code': 0, 'msg': '课程评价成功！', 'data': []}
+				new_avgscore = round(sum_score/sum_userstar, 2)
+				if typeof_cmt == '课程':
+					courseinfo.objects.filter(course_id=current_id).update(avg_score=new_avgscore,cmt_cnt=len(qset))
+				else:
+					Teacher.objects.filter(id=current_id).update(avg_score=new_avgscore,cmt_cnt=len(qset))
+				res = {'code': 0, 'msg': '评价成功！', 'data': []}
 		else:
-			res = {'code': -2, 'msg': '课程不存在！', 'data': []}
-	except:
-		res = {'code': -3, 'msg': '操作异常！', 'data': []}
+			if tag == -2:
+				res = {'code': -1, 'msg': 'cmt_type error', 'data':[]}
+			else:
+				res = {'code': -2, 'msg': '无该课程或教师数据记录！', 'data': []}
+	except Exception as e:
+		res = {'code': -3, 'msg': e, 'data': []}
 		traceback.print_exc()
 	print(res)
 	return HttpResponse(json.dumps(res))
 
 @csrf_exempt
-def course_favorcmt(request):
+def favor_comment(request):
 	request.encoding = 'utf-8'
-	res = {'code':0, 'msg':'success', 'data':[]}
+	res = {'code':-1, 'msg':'error', 'data':{}}
+	tag = 0
 	try:
 		coursecmt_id = int(request.POST['comment_id'].strip())
 		isfavor_coursecmt = int(request.POST['isfavor_coursecmt'].strip())
@@ -159,33 +203,49 @@ def course_favorcmt(request):
 			current_approve = DATA[0]['fields']['approve_num'] + isfavor_coursecmt
 			current_oppose = DATA[0]['fields']['oppose_num'] + isoppose_coursecmt
 			comment.objects.filter(comment_id=coursecmt_id).update(approve_num=current_approve,oppose_num=current_oppose)
-			res = {'code': 0, 'msg': '操作成功！', 'data': []}
+			res = {'code': 0, 'msg': 'success', 'data': []}
 		else:
 			res = {'code': -1, 'msg': '评论不存在！', 'data': []}
-	except:
-		res = {'code': -2, 'msg': '操作异常！', 'data': []}
+	except Exception as e:
+		res = {'code': -2, 'msg': e, 'data': []}
 		traceback.print_exc()
 	print(res)
 	return HttpResponse(json.dumps(res))
 
 @csrf_exempt
-def course_hotcmt(request):
+def hot_comment(request):
 	request.encoding = 'utf-8'
-	res = {'code':0, 'msg':'success', 'data':[]}
+	res = {'code':0, 'msg':'success', 'data':{}}
 	try:
 		comment_type = request.POST['cmt_type'].strip()
-		qset = comment.objects.filter(cmt_type=comment_type)
-		if len(qset)>0:
-			ALL_DATA = json.loads(serializers.serialize("json", qset))
-			selected_data = []
-			for i in range(0, len(ALL_DATA)):
-				ALL_DATA[i]['fields']['comment_id'] = ALL_DATA[i]['pk']
-				selected_data.append(ALL_DATA[i]['fields'])
-			res = {'code': 0, 'msg': '操作成功！', 'data': selected_data}
+		cursor=connection.cursor()
+		if comment_type == '所有':
+			sql = 'select comment_id,user_userinfo.openid from user_userinfo join course_comment where user_userinfo.openid=course_comment.openid and course_comment.status=1 and user_userinfo.status=1 order by course_comment.mtime desc'
+			sql2 = sql
 		else:
-			res = {'code': -1, 'msg': '无任何课程热评！', 'data': []}
-	except:
-		res = {'code': -2, 'msg': '操作异常！', 'data': []}
+			sql = 'select comment_id,user_userinfo.openid from user_userinfo join course_comment where user_userinfo.openid=course_comment.openid and cmt_type="{}" and course_comment.status=1 and user_userinfo.status=1 order by course_comment.mtime desc'
+			sql2 = sql.format(comment_type)
+		cursor.execute(sql2)
+		qset=cursor.fetchall()
+		if len(qset)>0:
+			res['data']['comment_info'] = []
+			res['data']['comment_user'] = []
+			for i in range(0, len(qset)):
+				cmt_id = qset[i][0]
+				user_id = qset[i][1]
+				qset2 = comment.objects.filter(comment_id=cmt_id,status=1)
+				DATA = json.loads(serializers.serialize("json", qset2))
+				DATA[0]['fields']['comment_id'] = cmt_id
+				res['data']['comment_info'].append(DATA[0]['fields'])
+				qset2 = UserInfo.objects.filter(openid=user_id,status=1)
+				DATA = json.loads(serializers.serialize("json", qset2))
+				res['data']['comment_user'].append(DATA[0]['fields'])
+			res['code'] = 0
+			res['msg'] = 'success'
+		else:
+			res = {'code': -1, 'msg': '当前分类无任何热评！', 'data': []}
+	except Exception as e:
+		res = {'code': -2, 'msg': e, 'data': []}
 		traceback.print_exc()
 	print(res)
 	return HttpResponse(json.dumps(res))

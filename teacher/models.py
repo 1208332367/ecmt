@@ -17,7 +17,7 @@ class Teacher(models.Model):
     avatar_url = models.CharField(max_length=255)
     dept = models.CharField(max_length=255)
     post = models.CharField(max_length=255)
-    avg_score = models.DecimalField(max_digits=5, decimal_places=2,default=0)
+    avg_score = models.DecimalField(max_digits=5, decimal_places=2,default=8.0)
     cmt_cnt = models.IntegerField(default=0)
     status = models.IntegerField(default=1)
     ctime = models.DateTimeField(default = timezone.now)
