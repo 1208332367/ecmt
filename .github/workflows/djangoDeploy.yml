@@ -28,17 +28,11 @@ jobs:
           ssh-add "$SSH_PATH/id_rsa"
           ssh-keyscan -t rsa $HOST >> "$SSH_PATH/known_hosts"
           ssh -o StrictHostKeyChecking=no -i $SSH_PATH/id_rsa -A -tt $USER@$HOST <<EOF
-          echo "abcd">a.txt 
-          ls
-          cat a.txt
-          
           cd /data/app/$APP_NAME
           git checkout .
           git checkout master
           git pull origin master
-          
           rm -f /etc/nginx/sites-enabled/ecmt.yiwangchunyu.wang.conf
           ln -s /data/app/ecmt/ecmt.yiwangchunyu.wang.conf /etc/nginx/sites-enabled/ecmt.yiwangchunyu.wang.conf
-          
           logout
           EOF
