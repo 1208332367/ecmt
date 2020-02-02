@@ -39,11 +39,11 @@ jobs:
           if [ ! -d "uwsgi" ];then
           mkdir -p uwsgi
           fi
-          #if [ ! -f "uwsgi/uwsgi.pid" ];then
-          #uwsgi --ini uwsgi.ini
-          #else
-          #uwsgi --reload uwsgi/uwsgi.pid
-          #fi
+          if [ ! -f "uwsgi/uwsgi.pid" ];then
+          uwsgi --ini uwsgi.ini
+          else
+          uwsgi --reload uwsgi/uwsgi.pid
+          fi
           #nginx -s reload
           logout
           EOF
