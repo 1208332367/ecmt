@@ -15,7 +15,7 @@ jobs:
           ACTIONS_DEPLOY_KEY: ${{ secrets.HuaweiCloud }}
           HOST: huawei.yiwangchunyu.wang
           USER: root
-          
+          APP_NAME: "ecmt"
         run: |
           SSH_PATH="$HOME/.ssh"
           mkdir -p $SSH_PATH
@@ -31,5 +31,6 @@ jobs:
           echo "abcd">a.txt 
           ls
           cat a.txt
+          cd /data/app/$APP_NAME
           logout
           EOF
