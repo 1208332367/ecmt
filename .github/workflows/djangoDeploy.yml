@@ -44,6 +44,6 @@ jobs:
           else
           uwsgi --reload uwsgi/uwsgi.pid
           fi
-          #nginx -s reload
+          nginx -s reload
           logout
           EOF
