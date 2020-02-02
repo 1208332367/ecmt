@@ -32,5 +32,8 @@ jobs:
           ls
           cat a.txt
           cd /data/app/$APP_NAME
+          git checkout .
+          git checkout master
+          git pull origin master
           logout
           EOF
