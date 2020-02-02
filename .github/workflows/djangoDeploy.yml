@@ -31,9 +31,14 @@ jobs:
           echo "abcd">a.txt 
           ls
           cat a.txt
+          
           cd /data/app/$APP_NAME
           git checkout .
           git checkout master
           git pull origin master
+          
+          rm -f /etc/nginx/sites-enabled/ecmt.yiwangchunyu.wang.conf
+          ln -s /data/app/ecmt/ecmt.yiwangchunyu.wang.conf /etc/nginx/sites-enabled/ecmt.yiwangchunyu.wang.conf
+          
           logout
           EOF
