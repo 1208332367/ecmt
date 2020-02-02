@@ -12,9 +12,11 @@ from django.views.decorators.csrf import csrf_exempt
 
 from user.models import UserInfo
 
+import time
 
 @csrf_exempt
 def create(request):
+    time.sleep(1)
     res={'code':0, 'msg':'success', 'data':[]}
     if  not {'openid','nick_name','avatar_url'}.issubset(set(request.POST.keys())):
         return HttpResponse(json.dumps({'code':-1,'msg':'unexpected params!', 'data':[]}))
