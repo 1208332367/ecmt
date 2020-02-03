@@ -1,4 +1,4 @@
-name: ActionTest
+name: djangoDeploy
 
 on:
   push:
@@ -28,12 +28,22 @@ jobs:
           ssh-add "$SSH_PATH/id_rsa"
           ssh-keyscan -t rsa $HOST >> "$SSH_PATH/known_hosts"
           ssh -o StrictHostKeyChecking=no -i $SSH_PATH/id_rsa -A -tt $USER@$HOST <<EOF
-          echo "abcd">a.txt 
-          ls
-          cat a.txt
           cd /data/app/$APP_NAME
           git checkout .
           git checkout master
           git pull origin master
+          rm -f /etc/nginx/sites-enabled/ecmt.yiwangchunyu.wang.conf
+          ln -s /data/app/ecmt/ecmt.yiwangchunyu.wang.conf /etc/nginx/sites-enabled/ecmt.yiwangchunyu.wang.conf
+          python manage.py makemigrations
+          python manage.py migrate
+          if [ ! -d "uwsgi" ];then
+          mkdir -p uwsgi
+          fi
+          if [ ! -f "uwsgi/uwsgi.pid" ];then
+          uwsgi --ini uwsgi.ini
+          else
+          uwsgi --reload uwsgi/uwsgi.pid
+          fi
+          nginx -s reload
           logout
           EOF
