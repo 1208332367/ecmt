@@ -1,0 +1,52 @@
+name: djangoDeploy
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy
+        env:
+          ACTIONS_DEPLOY_KEY: ${{ secrets.HuaweiCloud }}
+          HOST: huawei.yiwangchunyu.wang
+          USER: root
+          APP_NAME: "ecmt"
+        run: |
+          SSH_PATH="$HOME/.ssh"
+          mkdir -p $SSH_PATH
+          touch "$SSH_PATH/known_hosts"
+          echo "$ACTIONS_DEPLOY_KEY" > "$SSH_PATH/id_rsa"
+          chmod 700 "$SSH_PATH"
+          chmod 600 "$SSH_PATH/known_hosts"
+          chmod 600 "$SSH_PATH/id_rsa"
+          eval $(ssh-agent)
+          ssh-add "$SSH_PATH/id_rsa"
+          ssh-keyscan -t rsa $HOST >> "$SSH_PATH/known_hosts"
+          ssh -o StrictHostKeyChecking=no -i $SSH_PATH/id_rsa -A -tt $USER@$HOST <<EOF
+          cd /data/app/$APP_NAME
+          git checkout .
+          git checkout master
+          git pull origin master
+          rm -f /etc/nginx/sites-enabled/ecmt.yiwangchunyu.wang.conf
+          ln -s /data/app/ecmt/ecmt.yiwangchunyu.wang.conf /etc/nginx/sites-enabled/ecmt.yiwangchunyu.wang.conf
+          python manage.py makemigrations
+          python manage.py migrate
+          if [ ! -d "uwsgi" ];then
+          mkdir -p uwsgi
+          fi
+          if [ ! -f "uwsgi/uwsgi.pid" ];then
+          uwsgi --ini uwsgi.ini
+          else
+          uwsgi --reload uwsgi/uwsgi.pid
+          fi
+          nginx -s reload
+          logout
+          EOF
